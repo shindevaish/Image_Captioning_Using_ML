@@ -7,6 +7,7 @@ import requests
 processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
 model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
 
+
 # Function to preprocess the image
 def preprocess_image(image_path):
     image = Image.open(image_path).convert("RGB")
