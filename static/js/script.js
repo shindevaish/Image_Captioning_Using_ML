@@ -18,9 +18,15 @@ document.getElementById('search-form').addEventListener('submit', async function
     if (result.images) {
         result.images.forEach(image => {
             const imgElement = document.createElement('img');
-            imgElement.src = image.url; // Assuming the image URL is available in 'url' field
-            imgElement.alt = image.caption; // Assuming a caption field is available for the alt text
+            imgElement.src = image.url;
+            imgElement.alt = image.caption;
+            imgElement.style.width = "200px";  // Example styling
+            imgElement.style.margin = "10px"; // Example styling
             resultContainer.appendChild(imgElement);
+
+            const captionElement = document.createElement('div');
+            captionElement.textContent = image.caption;
+            resultContainer.appendChild(captionElement);
         });
     } else if (result.error) {
         const errorElement = document.createElement('div');
