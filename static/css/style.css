@@ -1,24 +1,23 @@
-*{
+* {
     margin: 0;
     padding: 0;
     font-family: 'Poppins', sans-serif;
     box-sizing: border-box;
 }
-body{
-    background: #39297b ;
-
+body {
+    background: #39297b;
 }
-h1{
+h1 {
     text-align: center;
     margin: 70px auto 50px;
     color: #fff;
 }
-.container{
+.container {
     padding: 50px;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
 }
-form{
+form {
     width: 90%;
     max-width: 600px;
     margin: auto;
@@ -29,7 +28,7 @@ form{
     color: #fff;
     border-radius: 8px;
 }
-form input{
+form input {
     flex: 1;
     height: 100%;
     border: 0;
@@ -41,7 +40,7 @@ form input{
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
 }
-form button{
+form button {
     height: 100%;
     border: 0;
     outline: 0;
@@ -52,7 +51,13 @@ form button{
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
 }
-::placeholder{
+::placeholder {
     font-size: 18px;
     color: #fff;
+}
+#result img {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    margin: 10px;
 }

@@ -1,6 +1,7 @@
-document.getElementById('search-form').addEventListener('submit', async function (event) {
+document.getElementById('search-btn').addEventListener('click', async function (event) {
     event.preventDefault();
     const query = document.getElementById('search-input').value;
+
     const response = await fetch('/search/', {
         method: 'POST',
         headers: {
@@ -8,32 +9,23 @@ document.getElementById('search-form').addEventListener('submit', async function
         },
         body: JSON.stringify({ query: query }),
     });
-    const result = await response.json();
     
-    // Clear previous search results
-    const resultContainer = document.getElementById('result');
-    resultContainer.innerHTML = "";
+    const result = await response.json();
+    const resultDiv = document.getElementById('result');
 
-    // Append new search results
     if (result.images) {
-        result.images.forEach(image => {
+        resultDiv.innerHTML = '';
+        result.images.forEach(imgData => {
+            const img = JSON.parse(imgData);
             const imgElement = document.createElement('img');
-            imgElement.src = image.url;
-            imgElement.alt = image.caption;
-            imgElement.style.width = "200px";  // Example styling
-            imgElement.style.margin = "10px"; // Example styling
-            resultContainer.appendChild(imgElement);
-
-            const captionElement = document.createElement('div');
-            captionElement.textContent = image.caption;
-            resultContainer.appendChild(captionElement);
+            imgElement.src = `http://images.cocodataset.org/train2017/${img.file_name}`;
+            imgElement.alt = img.coco_url;
+            resultDiv.appendChild(imgElement);
         });
     } else if (result.error) {
-        const errorElement = document.createElement('div');
-        errorElement.textContent = `Error: ${result.error}`;
-        resultContainer.appendChild(errorElement);
+        resultDiv.innerHTML = `<p>Error: ${result.error}</p>`;
     }
-
-    // Keep the search input value
+    
+    // Keep the query in the input box
     document.getElementById('search-input').value = query;
 });
