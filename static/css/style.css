@@ -55,9 +55,19 @@ form button {
     font-size: 18px;
     color: #fff;
 }
+#result .img-container {
+    display: inline-block;
+    width: 23%;
+    margin: 1%;
+    text-align: center;
+}
 #result img {
-    width: 200px;
-    height: 200px;
-    object-fit: cover;
-    margin: 10px;
+    width: 100%;
+    height: auto;
+}
+#result p {
+    color: #fff;
+    background: #434989;
+    padding: 10px;
+    border-radius: 8px;
 }

@@ -16,11 +16,18 @@ document.getElementById('search-btn').addEventListener('click', async function (
     if (result.images) {
         resultDiv.innerHTML = '';
         result.images.forEach(imgData => {
-            const img = JSON.parse(imgData);
             const imgElement = document.createElement('img');
-            imgElement.src = `http://images.cocodataset.org/train2017/${img.file_name}`;
-            imgElement.alt = img.coco_url;
-            resultDiv.appendChild(imgElement);
+            imgElement.src = imgData.url;
+            imgElement.alt = imgData.caption;
+
+            const captionElement = document.createElement('p');
+            captionElement.textContent = imgData.caption;
+
+            const imgContainer = document.createElement('div');
+            imgContainer.appendChild(imgElement);
+            imgContainer.appendChild(captionElement);
+
+            resultDiv.appendChild(imgContainer);
         });
     } else if (result.error) {
         resultDiv.innerHTML = `<p>Error: ${result.error}</p>`;
