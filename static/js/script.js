@@ -1,3 +1,4 @@
+// static/script.js
 document.getElementById('search-btn').addEventListener('click', async function (event) {
     event.preventDefault();
     const query = document.getElementById('search-input').value;
@@ -9,7 +10,7 @@ document.getElementById('search-btn').addEventListener('click', async function (
         },
         body: JSON.stringify({ query: query }),
     });
-    
+
     const result = await response.json();
     const resultDiv = document.getElementById('result');
 
@@ -18,19 +19,10 @@ document.getElementById('search-btn').addEventListener('click', async function (
         result.images.forEach(imgData => {
             const imgElement = document.createElement('img');
             imgElement.src = imgData.url;
-            imgElement.alt = imgData.caption;
-
-            const captionElement = document.createElement('p');
-            captionElement.textContent = imgData.caption;
-
-            const imgContainer = document.createElement('div');
-            imgContainer.appendChild(imgElement);
-            imgContainer.appendChild(captionElement);
-
-            resultDiv.appendChild(imgContainer);
+            resultDiv.appendChild(imgElement);
         });
-    } else if (result.error) {
-        resultDiv.innerHTML = `<p>Error: ${result.error}</p>`;
+    } else if (result.detail) {
+        resultDiv.innerHTML = `<p>${result.detail}</p>`;
     }
     
     // Keep the query in the input box
