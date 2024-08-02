@@ -1,4 +1,3 @@
-// static/script.js
 document.getElementById('search-btn').addEventListener('click', async function (event) {
     event.preventDefault();
     const query = document.getElementById('search-input').value;
@@ -18,8 +17,19 @@ document.getElementById('search-btn').addEventListener('click', async function (
         resultDiv.innerHTML = '';
         result.images.forEach(imgData => {
             const imgElement = document.createElement('img');
-            imgElement.src = imgData.url;
-            resultDiv.appendChild(imgElement);
+            imgElement.src = '/static/images_small/' + imgData.file_name; // Adjust path as needed
+            imgElement.alt = imgData.caption;    // Add alt text for better accessibility
+
+            const captionElement = document.createElement('p');
+            captionElement.innerText = imgData.caption;
+
+            const container = document.createElement('div'); // Create a container for each image and its caption
+            container.classList.add('img-container');
+
+            container.appendChild(imgElement);
+            container.appendChild(captionElement);
+            resultDiv.appendChild(container);
+
         });
     } else if (result.detail) {
         resultDiv.innerHTML = `<p>${result.detail}</p>`;
