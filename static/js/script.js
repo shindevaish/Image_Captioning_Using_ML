@@ -17,7 +17,7 @@ document.getElementById('search-btn').addEventListener('click', async function (
         resultDiv.innerHTML = '';
         result.images.forEach(imgData => {
             const imgElement = document.createElement('img');
-            imgElement.src = '/static/images_small/' + imgData.file_name; // Adjust path as needed
+            imgElement.src = '/static/image/' + imgData.file_name; // Adjust path as needed
             imgElement.alt = imgData.caption;    // Add alt text for better accessibility
 
             const captionElement = document.createElement('p');
