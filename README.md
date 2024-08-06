@@ -20,3 +20,14 @@ FastAPI: A modern web framework for building APIs with Python, known for its hig
 BLIP (Bootstrapped Language-Image Pre-training) Model: An advanced image captioning model from Salesforce that generates natural language descriptions of images.
 
 Pillow: A Python Imaging Library (PIL) used to handle image processing.
+
+
+# Project Title
+
+Description of your project.
+
+## Demo Video
+
+[![Watch the demo video](Demo_video.mov)]
+
+Click the image above to watch the demo video.
