@@ -23,11 +23,10 @@ Pillow: A Python Imaging Library (PIL) used to handle image processing.
 
 
 # Project Title
-
 Description of project.
 
 ## Demo Video
 
-[![Watch the demo video](media/Demo_image.png)](media/Demo_video.mov)
+[![Watch the demo video](media/Demo_image.png)](media/video_demo.mp4)
 
 Click the image above to watch the demo video.
