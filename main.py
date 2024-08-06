@@ -15,7 +15,7 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-image_caption=pd.read_csv("image_caption.csv")
+image_caption=pd.read_csv("captions.csv")
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
