@@ -13,8 +13,12 @@
             <input type="text" id="search-input" placeholder="Search anything here.....">
             <button type="submit" id="search-btn">Search</button>
         </form>
+        <div id="upload">
+        <button type="button" id="upload-btn" onClick="triggerFileInput()">Upload</button>
+        <input type="file" id="file-input" accept="image/*" style="display:none;">
+        </div>
         <div id="result"></div>
     </div>
     <script src="/static/js/script.js"></script>
-</body>
+</body> 
 </html>
