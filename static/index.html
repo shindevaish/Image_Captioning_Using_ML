@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image Search Engine</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
 </head>
 <body>
     <div class="container">
@@ -14,7 +15,8 @@
             <button type="submit" id="search-btn">Search</button>
         </form>
         <div id="upload">
-        <button type="button" id="upload-btn" onClick="triggerFileInput()">Upload</button>
+        <button type="button" id="upload-btn" onClick="triggerFileInput()">Search by image</button>
+        <button type="button" id="add-image-btn">Add Image to Database</button>
         <input type="file" id="file-input" accept="image/*" style="display:none;">
         </div>
         <div id="result"></div>

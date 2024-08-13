@@ -1,22 +1,27 @@
+/* Global Styles */
 * {
     margin: 0;
     padding: 0;
     font-family: 'Poppins', sans-serif;
     box-sizing: border-box;
 }
+
 body {
     background: #39297b;
 }
+
 h1 {
     text-align: center;
     margin: 70px auto 50px;
     color: #fff;
 }
+
 .container {
     padding: 50px;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
 }
+
 form {
     width: 90%;
     max-width: 600px;
@@ -28,6 +33,7 @@ form {
     color: #fff;
     border-radius: 8px;
 }
+
 form input[type="text"] {
     flex: 1;
     height: 100%;
@@ -40,6 +46,7 @@ form input[type="text"] {
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
 }
+
 form button {
     height: 100%;
     border: 0;
@@ -51,25 +58,35 @@ form button {
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
 }
-#upload {
+
+.upload-container {
     width: 90%;
     max-width: 600px;
     margin: 20px auto;
-    height: 80px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+}
+
+.upload-container button {
+    flex: 1;
+    height: 50px;
+    margin: 0 10px;
+    border: 0;
+    outline: 0;
     background: #e24034;
-    color: #fff;
     font-size: 18px;
+    padding: 0 20px;
     cursor: pointer;
     border-radius: 8px;
-    border: none;
+    color: white;
+    text-align: center;
+    line-height: 50px;
 }
-::placeholder {
-    font-size: 18px;
-    color: #fff;
+
+.upload-container button:hover {
+    background: #c12c29;
 }
+
 #result {
     display: flex;
     flex-wrap: wrap;
@@ -77,6 +94,7 @@ form button {
     padding-top: 20px;
     gap: 1%;
 }
+
 .img-container {
     flex: 1 1 calc(25% - 1%);
     max-width: calc(25% - 1%);
@@ -87,11 +105,13 @@ form button {
     border-radius: 8px;
     margin-bottom: 20px;
 }
+
 .img-container img {
     width: 100%;
     height: auto;
     border-radius: 8px;
 }
+
 .img-container p {
     color: #fff;
     background: #434989;
