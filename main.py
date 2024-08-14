@@ -80,18 +80,14 @@ async def upload_image(file: UploadFile = File(...)):
 @app.post("/add_image/")
 async def add_image(file: UploadFile = File(...)):
     try:
-        # Save the uploaded file
         image = Image.open(file.file).convert("RGB")
         file_name = file.filename
         image_path = f"static/image/{file_name}"
         image.save(image_path)
-
-        # Generate the caption for the image
         inputs = processor(image, return_tensors="pt", padding=True)
         outputs = model.generate(**inputs)
         caption = processor.decode(outputs[0], skip_special_tokens=True)
 
-        # Append the new image data to the CSV file
         new_data = pd.DataFrame([[file_name, caption]], columns=["image_id", "caption"])
         new_data.to_csv("captions.csv", mode='a', header=False, index=False)
 

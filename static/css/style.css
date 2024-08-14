@@ -59,7 +59,7 @@ form button {
     border-bottom-right-radius: 10px;
 }
 
-.upload-container {
+#upload {
     width: 90%;
     max-width: 600px;
     margin: 20px auto;
@@ -67,7 +67,7 @@ form button {
     justify-content: space-between;
 }
 
-.upload-container button {
+#upload button {
     flex: 1;
     height: 50px;
     margin: 0 10px;
@@ -83,7 +83,7 @@ form button {
     line-height: 50px;
 }
 
-.upload-container button:hover {
+#upload button:hover {
     background: #c12c29;
 }
 
