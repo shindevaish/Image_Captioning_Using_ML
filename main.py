@@ -4,13 +4,24 @@ from fastapi.staticfiles import StaticFiles
 from transformers import BlipProcessor, BlipForConditionalGeneration
 from pathlib import Path
 from PIL import Image
+from collections import defaultdict
+from IPython.display import display, HTML
+import nltk
+from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords
+import contractions
+import string
 import json
 import numpy as np
 import torch
 import pandas as pd
+import time
+import re
 import requests
 import os
 import uvicorn
+
+
 
 app = FastAPI()
 
@@ -26,23 +37,127 @@ async def index():
             return HTMLResponse(content=f.read())
     return HTMLResponse(content="<h1>Index file not found</h1>")
 
+def preprocess(text):
+    stemmer = PorterStemmer()
+    stop_words = set(stopwords.words("english"))
+    # Text normalization
+    expanded_words = []    
+    for word in text.split():
+      # using contractions.fix to expand the shortened words
+      expanded_words.append(contractions.fix(word))  
+   
+    text = ' '.join(expanded_words)
+    # Remove punctuations
+    translator = str.maketrans("", "", string.punctuation)
+    text = text.translate(translator)
+    # Remove non-alphabetic characters
+    text = re.sub(r"[^a-zA-Z\s]", "", text)  
+    tokens = text.lower().split()
+    # Stemming and stop-word removal
+    tokens = [stemmer.stem(token) for token in tokens if token not in stop_words]
+    return tokens
+
+def construct_inverted_index(df):
+  dictionary = {} # inverted index
+ 
+  for index, row in df.iterrows():
+    try:
+      abstract_tokens = preprocess(row.summaries) # convert paper abstracts to tokens
+      for token in abstract_tokens:
+        if token not in dictionary: # add the document index to the postings of each term in the tokenized text
+          dictionary[token] = [index]
+        else:
+          dictionary[token].append(index)
+    except:
+      continue
+ 
+  #removing duplicates
+  dictionary = {a:set(b) for a, b in dictionary.items()}
+ 
+  return dictionary
+inverted_index = construct_inverted_index(image_caption)
+print("Size of inverted index ", len(inverted_index))
+
+def tokenize_infix_expression(expression):
+    return expression.split()
+def infix_to_postfix(tokens):
+    precedence = {"AND": 2, "NOT": 3, "OR":1 } # set the precedence of operators for postfix expression
+    stack = []
+    postfix = []
+    for token in tokens:
+        if token in precedence: # add operands first and then operators
+            while stack and precedence.get(stack[-1], 0) >= precedence[token]:
+                postfix.append(stack.pop())
+            stack.append(token)
+        elif token == '(':
+            stack.append(token)
+        elif token == ')':
+            while stack and stack[-1] != '(':
+                postfix.append(stack.pop())
+            stack.pop()
+        else:
+            postfix.append(token)
+    while stack:
+        postfix.append(stack.pop())
+    return postfix
+
+def evaluate_postfix(postfix):
+    stemmer = PorterStemmer()
+    stack = []
+    for token in postfix:
+        if token == "AND": # take intersection of postings
+            set2 = stack.pop()
+            set1 = stack.pop()
+            result = set1.intersection(set2)
+            stack.append(result)
+        elif token == "NOT": # finding all documents that are not in the postings list
+            set1 = stack.pop()
+            set2 = set(range(len(data)))
+            result = set2.difference(set1)
+            stack.append(result)
+        elif token == "OR": # take union of postings
+            set1 = stack.pop()
+            set2 = stack.pop()
+            stack.append(set1.union(set2))  # Convert token to a set
+        else: # retrive the posting of the stemmed token
+          stack.append(inverted_index.get(stemmer.stem(token), set()))
+       
+    return stack[0]
+
 
 @app.post("/search/")
 async def search_endpoint(request: Request):
     data = await request.json()
     query = data.get("query")
+
+    # Tokenize the expression
+    tokens = tokenize_infix_expression(query)
+    # Convert to postfix notation
+    postfix_expression = infix_to_postfix(tokens)
+    print(postfix_expression)
+    # # Evaluate the postfix expression
+    result = evaluate_postfix(postfix_expression)
+    titles = []
+    abstracts = []
+    for res in list(result)[:10]:
+        titles.append(image_caption.iloc[res].image_id)
+        abstracts.append(image_caption.iloc[res].caption)
+    results = [{"Title": title, "Abstract": abstract} for title, abstract in zip(titles, abstracts)]
     
-    if not query:
-        return JSONResponse(content={'message' : "No matching image found"})
-    else:
-        match=image_caption[image_caption['caption'].str.contains(fr'\b{query}\b', case=False, na=False)]
-        lst=[{"file_name" : row['image_id'], 'caption' : row['caption']} for _, row in match.iterrows()]
+    return JSONResponse(content={"results": results})
 
-    # folder="static/images"
-    # files= sorted(os.listdir(folder))[:10]
-    # lst=[{"file_name":file,"url":f"static/images/{file}"} for file in files]
+    
+    # if not query:
+    #     return JSONResponse(content={'message' : "No matching image found"})
+    # else:
+    #     match=image_caption[image_caption['caption'].str.contains(fr'\b{query}\b', case=False, na=False)]
+    #     lst=[{"file_name" : row['image_id'], 'caption' : row['caption']} for _, row in match.iterrows()]
 
-    return JSONResponse(content={"images": lst})
+    # # folder="static/images"
+    # # files= sorted(os.listdir(folder))[:10]
+    # # lst=[{"file_name":file,"url":f"static/images/{file}"} for file in files]
+
+    # return JSONResponse(content={"images": lst})
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
