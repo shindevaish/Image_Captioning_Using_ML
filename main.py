@@ -40,46 +40,33 @@ async def index():
 def preprocess(text):
     stemmer = PorterStemmer()
     stop_words = set(stopwords.words("english"))
-    # Text normalization
-    expanded_words = []    
-    for word in text.split():
-      # using contractions.fix to expand the shortened words
-      expanded_words.append(contractions.fix(word))  
-   
+    expanded_words = [contractions.fix(word) for word in text.split()]
     text = ' '.join(expanded_words)
-    # Remove punctuations
-    translator = str.maketrans("", "", string.punctuation)
-    text = text.translate(translator)
-    # Remove non-alphabetic characters
-    text = re.sub(r"[^a-zA-Z\s]", "", text)  
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    text = re.sub(r"[^a-zA-Z\s]", "", text)
     tokens = text.lower().split()
-    # Stemming and stop-word removal
     tokens = [stemmer.stem(token) for token in tokens if token not in stop_words]
     return tokens
 
 def construct_inverted_index(df):
-  dictionary = {} # inverted index
+    dictionary = {} # inverted index
  
-  for index, row in df.iterrows():
-    try:
-      abstract_tokens = preprocess(row.summaries) # convert paper abstracts to tokens
-      for token in abstract_tokens:
-        if token not in dictionary: # add the document index to the postings of each term in the tokenized text
-          dictionary[token] = [index]
-        else:
-          dictionary[token].append(index)
-    except:
-      continue
- 
-  #removing duplicates
-  dictionary = {a:set(b) for a, b in dictionary.items()}
- 
-  return dictionary
+    for index, row in df.iterrows():
+        tokens = preprocess(row['caption'])
+        for token in tokens:
+            if token not in dictionary:
+                dictionary[token] = [index]
+            else:
+                dictionary[token].append(index)
+    dictionary = {k: set(v) for k, v in dictionary.items()}
+    return dictionary
+
 inverted_index = construct_inverted_index(image_caption)
 print("Size of inverted index ", len(inverted_index))
 
 def tokenize_infix_expression(expression):
     return expression.split()
+
 def infix_to_postfix(tokens):
     precedence = {"AND": 2, "NOT": 3, "OR":1 } # set the precedence of operators for postfix expression
     stack = []
@@ -112,9 +99,7 @@ def evaluate_postfix(postfix):
             stack.append(result)
         elif token == "NOT": # finding all documents that are not in the postings list
             set1 = stack.pop()
-            set2 = set(range(len(data)))
-            result = set2.difference(set1)
-            stack.append(result)
+            stack.append(set(range(len(image_caption))).difference(set1))
         elif token == "OR": # take union of postings
             set1 = stack.pop()
             set2 = stack.pop()
@@ -130,13 +115,14 @@ async def search_endpoint(request: Request):
     data = await request.json()
     query = data.get("query")
 
+    print(f"Received query: {query}")
     # Tokenize the expression
     tokens = tokenize_infix_expression(query)
-    # Convert to postfix notation
     postfix_expression = infix_to_postfix(tokens)
-    print(postfix_expression)
+    print("Postfix Expression: ",postfix_expression)
     # # Evaluate the postfix expression
     result = evaluate_postfix(postfix_expression)
+    print(f"Search result indices: {result}")
     titles = []
     abstracts = []
     for res in list(result)[:10]:
