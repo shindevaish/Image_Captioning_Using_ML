@@ -2,6 +2,8 @@ from fastapi import FastAPI, Request,File,UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from transformers import BlipProcessor, BlipForConditionalGeneration
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 from pathlib import Path
 from PIL import Image
 from collections import defaultdict
@@ -37,100 +39,147 @@ async def index():
             return HTMLResponse(content=f.read())
     return HTMLResponse(content="<h1>Index file not found</h1>")
 
-def preprocess(text):
+def boolean_search(query):
+    
+    def preprocess(text):
+        stemmer = PorterStemmer()
+        stop_words = set(stopwords.words("english"))
+        expanded_words = [contractions.fix(word) for word in text.split()]
+        text = ' '.join(expanded_words)
+        text = text.translate(str.maketrans("", "", string.punctuation))
+        text = re.sub(r"[^a-zA-Z\s]", "", text)
+        tokens = text.lower().split()
+        tokens = [stemmer.stem(token) for token in tokens if token not in stop_words]
+        return tokens
+
+    def construct_inverted_index(df):
+        dictionary = {} # inverted index
+    
+        for index, row in df.iterrows():
+            tokens = preprocess(row['caption'])
+            for token in tokens:
+                if token not in dictionary:
+                    dictionary[token] = [index]
+                else:
+                    dictionary[token].append(index)
+        dictionary = {k: set(v) for k, v in dictionary.items()}
+        return dictionary
+
+    inverted_index = construct_inverted_index(image_caption)
+    print("Size of inverted index ", len(inverted_index))
+
+    def tokenize_infix_expression(expression):
+        return expression.split()
+
+    def infix_to_postfix(tokens):
+        precedence = {"and": 2, "not": 3, "or":1 } # set the precedence of operators for postfix expression
+        stack = []
+        postfix = []
+        for token in tokens:
+            if token in precedence: # add operands first and then operators
+                while stack and precedence.get(stack[-1], 0) >= precedence[token]:
+                    postfix.append(stack.pop())
+                stack.append(token)
+            elif token == '(':
+                stack.append(token)
+            elif token == ')':
+                while stack and stack[-1] != '(':
+                    postfix.append(stack.pop())
+                stack.pop()
+            else:
+                postfix.append(token)
+        while stack:
+            postfix.append(stack.pop())
+        return postfix
+
+    def evaluate_postfix(postfix):
+        stemmer = PorterStemmer()
+        stack = []
+        for token in postfix:
+            if token == "AND": # take intersection of postings
+                set2 = stack.pop()
+                set1 = stack.pop()
+                result = set1.intersection(set2)
+                stack.append(result)
+            elif token == "NOT": # finding all documents that are not in the postings list
+                set1 = stack.pop()
+                stack.append(set(range(len(image_caption))).difference(set1))
+            elif token == "OR": # take union of postings
+                set1 = stack.pop()
+                set2 = stack.pop()
+                stack.append(set1.union(set2))  # Convert token to a set
+            else: # retrive the posting of the stemmed token
+                stack.append(inverted_index.get(stemmer.stem(token), set()))
+        
+        return stack[0]
+    
+    tokens = tokenize_infix_expression(query)
+    postfix_expression = infix_to_postfix(tokens)
+    print("Postfix Expression: ", postfix_expression)
+    # Evaluate the postfix expression
+    result = evaluate_postfix(postfix_expression)
+    return result
+
+def semantic_search(query):
     stemmer = PorterStemmer()
     stop_words = set(stopwords.words("english"))
-    expanded_words = [contractions.fix(word) for word in text.split()]
-    text = ' '.join(expanded_words)
-    text = text.translate(str.maketrans("", "", string.punctuation))
-    text = re.sub(r"[^a-zA-Z\s]", "", text)
-    tokens = text.lower().split()
-    tokens = [stemmer.stem(token) for token in tokens if token not in stop_words]
-    return tokens
+    corpus = []
 
-def construct_inverted_index(df):
-    dictionary = {} # inverted index
- 
-    for index, row in df.iterrows():
-        tokens = preprocess(row['caption'])
-        for token in tokens:
-            if token not in dictionary:
-                dictionary[token] = [index]
-            else:
-                dictionary[token].append(index)
-    dictionary = {k: set(v) for k, v in dictionary.items()}
-    return dictionary
+    for summary in image_caption['caption'].to_list():
+        tokens = summary.lower().split()
+        # Stemming and stop-word removal
+        tokens = [stemmer.stem(token) for token in tokens if token not in stop_words]
+        corpus.append(" ".join(tokens))
+        
+    print(corpus[0])
+    # create a TF-IDF index based on the whole corpus
+    vectorizer = TfidfVectorizer(sublinear_tf=True, max_features=5000)
+    documents_tfidf_features = vectorizer.fit_transform(corpus)
+    # Print features used for TF-IDF vectorization
+    query_tokens = query.lower().split()
+    query_tokens = [stemmer.stem(token) for token in query_tokens if token not in stop_words]
+    query_processed = " ".join(query_tokens)
 
-inverted_index = construct_inverted_index(image_caption)
-print("Size of inverted index ", len(inverted_index))
-
-def tokenize_infix_expression(expression):
-    return expression.split()
-
-def infix_to_postfix(tokens):
-    precedence = {"AND": 2, "NOT": 3, "OR":1 } # set the precedence of operators for postfix expression
-    stack = []
-    postfix = []
-    for token in tokens:
-        if token in precedence: # add operands first and then operators
-            while stack and precedence.get(stack[-1], 0) >= precedence[token]:
-                postfix.append(stack.pop())
-            stack.append(token)
-        elif token == '(':
-            stack.append(token)
-        elif token == ')':
-            while stack and stack[-1] != '(':
-                postfix.append(stack.pop())
-            stack.pop()
-        else:
-            postfix.append(token)
-    while stack:
-        postfix.append(stack.pop())
-    return postfix
-
-def evaluate_postfix(postfix):
-    stemmer = PorterStemmer()
-    stack = []
-    for token in postfix:
-        if token == "AND": # take intersection of postings
-            set2 = stack.pop()
-            set1 = stack.pop()
-            result = set1.intersection(set2)
-            stack.append(result)
-        elif token == "NOT": # finding all documents that are not in the postings list
-            set1 = stack.pop()
-            stack.append(set(range(len(image_caption))).difference(set1))
-        elif token == "OR": # take union of postings
-            set1 = stack.pop()
-            set2 = stack.pop()
-            stack.append(set1.union(set2))  # Convert token to a set
-        else: # retrive the posting of the stemmed token
-          stack.append(inverted_index.get(stemmer.stem(token), set()))
-       
-    return stack[0]
-
+    query_tfidf_features = vectorizer.transform([query_processed])
+    similarities = cosine_similarity(documents_tfidf_features, query_tfidf_features).flatten()
+    TopK = 10
+    top_indices = similarities.argsort()[::-1][:TopK]# Pick TopK document ids having highest cosine similarity
+    
+    # Display the relevant documents
+    # results = []
+    # for index in top_indices:
+    #     if similarities[index] > 0:  # Only include results with non-zero similarity
+    #         row = image_caption.iloc[index]
+            # results.append({"file_name": row['image_id'], 'caption': row['caption'], 'similarity': similarities[index]})
+    
+    return top_indices
 
 @app.post("/search/")
 async def search_endpoint(request: Request):
     data = await request.json()
     query = data.get("query")
 
-    print(f"Received query: {query}")
-    # Tokenize the expression
-    tokens = tokenize_infix_expression(query)
-    postfix_expression = infix_to_postfix(tokens)
-    print("Postfix Expression: ",postfix_expression)
-    # # Evaluate the postfix expression
-    result = evaluate_postfix(postfix_expression)
-    print(f"Search result indices: {result}")
-    titles = []
-    abstracts = []
-    for res in list(result)[:10]:
-        titles.append(image_caption.iloc[res].image_id)
-        abstracts.append(image_caption.iloc[res].caption)
-    results = [{"Title": title, "Abstract": abstract} for title, abstract in zip(titles, abstracts)]
+    print(f"Received query:   {query}")
+    result = semantic_search(query)
+    print(f"Search result indices:   {result}")
+
+    lst=[]
+        # Convert the result set to a list
+    result_list = result.tolist() if isinstance(result, np.ndarray) else result
+    # Create a list of dictionaries with file names and captionz
+    for res in result_list:
+        row = image_caption.iloc[res]
+        print(row)
+        lst.append({"file_name": row['image_id'], 'caption': row['caption']})
     
-    return JSONResponse(content={"results": results})
+    return JSONResponse(content={"results": lst})
+
+    # if len(result) > 0:  # Check if there are any results
+    #     result_list = result.tolist() if isinstance(result, np.ndarray) else result
+
+    #     return JSONResponse(content={"results": result_list})
+    # else:
+    #     return JSONResponse(content={"message": "No matching image found"})
 
     
     # if not query:
