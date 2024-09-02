@@ -1,4 +1,3 @@
-// Event listener for the search button
 document.getElementById('search-btn').addEventListener('click', async function (event) {
     event.preventDefault();
     const query = document.getElementById('search-input').value;
@@ -13,42 +12,37 @@ document.getElementById('search-btn').addEventListener('click', async function (
 
     const result = await response.json();
     const resultDiv = document.getElementById('result');
-
-    // Clear previous results
-    resultDiv.innerHTML = '';
-
-    if (result.results && result.results.length > 0) {
+    
+    if (result.results) {
+        resultDiv.innerHTML = '';
         result.results.forEach(imgData => {
             const imgElement = document.createElement('img');
-            imgElement.src = '/static/image/' + imgData.Title; // Use image_id (Title) to set image source path
-            imgElement.alt = imgData.Abstract;
+            imgElement.src = '/static/image/' + imgData.file_name; // Adjust path as needed
+            imgElement.alt = imgData.caption; // Add alt text for better accessibility
 
             const captionElement = document.createElement('p');
-            captionElement.innerText = `Caption: ${imgData.Abstract}`;
+            captionElement.innerText = imgData.caption;
 
-            const container = document.createElement('div');
+            const container = document.createElement('div'); // Create a container for each image and its caption
             container.classList.add('img-container');
 
             container.appendChild(imgElement);
             container.appendChild(captionElement);
             resultDiv.appendChild(container);
+
         });
     } else if (result.detail) {
         resultDiv.innerHTML = `<p>${result.detail}</p>`;
-    } else {
-        resultDiv.innerHTML = `<p>No results found.</p>`;
     }
-
+    
     // Keep the query in the input box
     document.getElementById('search-input').value = query;
 });
 
-// Event listener for the upload button
 document.getElementById('upload-btn').addEventListener('click', function () {
     document.getElementById('file-input').click();
 });
 
-// Event listener for file input change (upload)
 document.getElementById('file-input').addEventListener('change', async function () {
     const file = this.files[0];
     const formData = new FormData();
@@ -62,44 +56,56 @@ document.getElementById('file-input').addEventListener('change', async function 
     const result = await response.json();
     const resultDiv = document.getElementById('result');
 
-    // Clear previous results
-    resultDiv.innerHTML = '';
+    // if (result.file_name && result.caption) {
+    //     const imgElement = document.createElement('img');
+    //     imgElement.src = '/static/uploaded_image/' + result.file_name; // Adjust path as needed
+    //     imgElement.alt = result.caption;    // Add alt text for better accessibility
 
-    if (result.images && result.images.length > 0) {
+    //     const captionElement = document.createElement('p');
+    //     captionElement.innerText = result.caption;
+
+    //     const container = document.createElement('div'); // Create a container for each image and its caption
+    //     container.classList.add('img-container');
+
+    //     container.appendChild(imgElement);
+    //     container.appendChild(captionElement);
+    //     resultDiv.appendChild(container);
+    // } else if (result.error) {
+    //     resultDiv.innerHTML = `<p>${result.error}</p>`;
+    // }
+
+    if (result.images) {
+        resultDiv.innerHTML = '';
         result.images.forEach(imgData => {
             const imgElement = document.createElement('img');
-            imgElement.src = '/static/image/' + imgData.file_name; // Use file_name to set image source path
-            imgElement.alt = imgData.caption;
+            imgElement.src = '/static/image/' + imgData.file_name; // Adjust path as needed
+            imgElement.alt = imgData.caption;    // Add alt text for better accessibility
 
             const captionElement = document.createElement('p');
-            captionElement.innerText = `Caption: ${imgData.caption}`;
+            captionElement.innerText = imgData.caption;
 
-            const container = document.createElement('div');
+            const container = document.createElement('div'); // Create a container for each image and its caption
             container.classList.add('img-container');
 
             container.appendChild(imgElement);
             container.appendChild(captionElement);
             resultDiv.appendChild(container);
+
         });
-    } else if (result.error) {
-        resultDiv.innerHTML = `<p>${result.error}</p>`;
+    } else if (result.detail) {
+        resultDiv.innerHTML = `<p>${result.detail}</p>`;
     }
 });
 
-// Event listener for the add-image button
 document.getElementById('add-image-btn').addEventListener('click', function () {
     document.getElementById('file-input').click();
 });
 
-// Event listener for file input change (add image)
 document.getElementById('file-input').addEventListener('change', async function () {
     const file = this.files[0];
-    if (!file) return;
-
     const formData = new FormData();
     formData.append('file', file);
 
-    // Send the file to the add_image API endpoint
     const response = await fetch('/add_image/', {
         method: 'POST',
         body: formData,
