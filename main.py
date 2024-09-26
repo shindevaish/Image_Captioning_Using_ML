@@ -6,11 +6,12 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from pathlib import Path
 from PIL import Image
-from collections import defaultdict
+from collections import defaultdict, Counter
 from IPython.display import display, HTML
 import nltk
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
+import math
 import contractions
 import string
 import json
@@ -120,7 +121,7 @@ def boolean_search(query):
     result = evaluate_postfix(postfix_expression)
     return result
 
-def semantic_search(query):
+def semantic_search_tfidf(query):
     stemmer = PorterStemmer()
     stop_words = set(stopwords.words("english"))
     corpus = []
@@ -131,7 +132,44 @@ def semantic_search(query):
         tokens = [stemmer.stem(token) for token in tokens if token not in stop_words]
         corpus.append(" ".join(tokens))
         
-    print(corpus[0])
+
+    def compute_tf(corpus):
+        tf_corpus=[]
+        for doc in corpus:
+            tf_doc=Counter(doc)
+            tf_corpus.append(tf_doc)
+        
+        return tf_corpus
+
+    def compute_df(corpus):
+        df=defaultdict(int)
+        for doc in corpus:
+            terms=set(doc)
+            for term in terms:
+                df[term] +=1
+        return df
+    
+    def compute_idf(corpus,df):
+        N=len(corpus)
+        idf={}
+        for term,freq in df.items():
+            idf[term]=math.log(N/(1+freq))
+        return idf
+
+    def compute_tfidf(tf_corpus, idf):
+        tfidf_corpus = []
+        for tf_doc in tf_corpus:
+            tfidf_doc = {}
+            for term, tf in tf_doc.items():
+                tfidf_doc[term] = tf * idf[term]  # TF * IDF
+            tfidf_corpus.append(tfidf_doc)
+        return tfidf_corpus 
+    
+    tf_corpus = compute_tf(corpus)
+    df = compute_df(corpus)
+    idf = compute_idf(corpus, df)
+    print(compute_tfidf(tf_corpus, idf))
+
     # create a TF-IDF index based on the whole corpus
     vectorizer = TfidfVectorizer(sublinear_tf=True, max_features=5000)
     documents_tfidf_features = vectorizer.fit_transform(corpus)
@@ -142,7 +180,7 @@ def semantic_search(query):
 
     query_tfidf_features = vectorizer.transform([query_processed])
     similarities = cosine_similarity(documents_tfidf_features, query_tfidf_features).flatten()
-    TopK = 10
+    TopK = 30
     top_indices = similarities.argsort()[::-1][:TopK]# Pick TopK document ids having highest cosine similarity
     
     # Display the relevant documents
@@ -160,8 +198,7 @@ async def search_endpoint(request: Request):
     query = data.get("query")
 
     print(f"Received query:   {query}")
-    result = semantic_search(query)
-    print(f"Search result indices:   {result}")
+    result = semantic_search_tfidf(query)
 
     lst=[]
         # Convert the result set to a list
@@ -169,7 +206,6 @@ async def search_endpoint(request: Request):
     # Create a list of dictionaries with file names and captionz
     for res in result_list:
         row = image_caption.iloc[res]
-        print(row)
         lst.append({"file_name": row['image_id'], 'caption': row['caption']})
     
     return JSONResponse(content={"results": lst})
