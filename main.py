@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request,File,UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from transformers import BlipProcessor, BlipForConditionalGeneration
+from transformers import BlipProcessor, BlipForConditionalGeneration, AutoTokenizer, AutoModel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from pathlib import Path
@@ -192,22 +192,78 @@ def semantic_search_tfidf(query):
     
     return top_indices
 
+tokenizer_bert = AutoTokenizer.from_pretrained('sentence-transformers/bert-base-nli-mean-tokens')
+model_bert = AutoModel.from_pretrained('sentence-transformers/bert-base-nli-mean-tokens')
+
+def bert_model(query):
+
+    for summary in image_caption['caption'].to_list():
+        tokens = tokenizer_bert([summary,query],
+                            max_length=128,
+                            truncation=True,
+                            padding='max_length',
+                            return_tensors='pt')
+    outputs = model_bert(**tokens)
+
+    embeddings = outputs.last_hidden_state
+    embeddings[0].shape
+    mask = tokens['attention_mask'].unsqueeze(-1).expand(embeddings.size()).float()
+    mask.shape
+    masked_embeddings = embeddings * mask
+
+    summed = torch.sum(masked_embeddings, 1)
+    summed.shape
+    counted = torch.clamp(mask.sum(1), min=1e-9)
+    mean_pooled = summed / counted
+
+    mean_pooled = mean_pooled.detach().numpy()
+
+    scores = np.zeros((mean_pooled.shape[0], mean_pooled.shape[0]))
+    for i in range(mean_pooled.shape[0]):
+        scores[i, :] = cosine_similarity(
+            [mean_pooled[i]],
+            mean_pooled
+        )[0]
+    return scores
+
+def search_with_dot_product(query):
+    # Embed the query
+    tokens = tokenizer_bert(query, max_length=128, truncation=True, padding='max_length', return_tensors='pt')
+    print(tokens['input_ids'].shape)
+    outputs = model_bert(**tokens)
+    
+    embeddings = outputs.last_hidden_state
+    mask = tokens['attention_mask'].unsqueeze(-1).expand(embeddings.size()).float()
+    masked_embeddings = embeddings * mask
+    summed = torch.sum(masked_embeddings, 1)
+    counted = torch.clamp(mask.sum(1), min=1e-9)
+    query_embedding = summed / counted
+    
+    query_embedding = query_embedding.detach().numpy()
+
+    caption_embeddings = np.load("caption_embeddings.npy")
+    
+    dot_products = np.dot(caption_embeddings, query_embedding.T).flatten()
+    
+    TopK = 10
+    top_indices = dot_products.argsort()[::-1][:TopK]
+    
+    return top_indices
+
+
 @app.post("/search/")
 async def search_endpoint(request: Request):
     data = await request.json()
     query = data.get("query")
 
     print(f"Received query:   {query}")
-    result = semantic_search_tfidf(query)
+    result = search_with_dot_product(query)
 
-    lst=[]
-        # Convert the result set to a list
-    result_list = result.tolist() if isinstance(result, np.ndarray) else result
-    # Create a list of dictionaries with file names and captionz
-    for res in result_list:
-        row = image_caption.iloc[res]
-        lst.append({"file_name": row['image_id'], 'caption': row['caption']})
-    
+    lst = []
+    for index in result:
+        row = image_caption.iloc[index]
+        lst.append({"file_name": row['image_id'], 'caption': row['caption']})    
+
     return JSONResponse(content={"results": lst})
 
     # if len(result) > 0:  # Check if there are any results
@@ -239,7 +295,6 @@ async def favicon():
 
 processor=BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
 model=BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
-
 data=[]
 
 @app.post("/upload")
