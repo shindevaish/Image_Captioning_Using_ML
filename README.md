@@ -75,3 +75,27 @@ Relevant images are returned based on the match and displayed on the frontend.
 [![Watch the demo video](media/Demo_image.png)](media/video_demo.mp4)
 
 Click the image above to watch the demo video.
+
+## How to run the file
+
+### Step 1: Download Dataset
+
+Go to the website [Coco Dataset](https://cocodataset.org/#home) 
+(Dataset --> Downloads --> 2017 Train images [118K/18GB])
+Download these dataset of images
+[![Dataset download](media//Users/vaishnavishinde/Desktop/Screenshot 2024-10-12 at 12.45.22 PM.png)]
+Keep the dataset in static folder.
+
+### Step 2: Generate the caption of dataset
+To generate the caption run main.ipynb file and the your captions is generated and it will be saved in the caption.csv file 
+
+### Step 3: Run command
+``` 
+cd Image_Captioning_Using_ML
+```
+
+```
+uvicorn app:main --reload --port 8001
+```
+You can choose any port.
+
