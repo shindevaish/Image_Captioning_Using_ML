@@ -81,9 +81,12 @@ Click the image above to watch the demo video.
 ### Step 1: Download Dataset
 
 Go to the website [Coco Dataset](https://cocodataset.org/#home) 
+
 (Dataset --> Downloads --> 2017 Train images [118K/18GB])
+
 Download these dataset of images
-[![Dataset download](media//Users/vaishnavishinde/Desktop/Screenshot 2024-10-12 at 12.45.22 PM.png)]
+![Dataset download](media/Dataset.png)
+
 Keep the dataset in static folder.
 
 ### Step 2: Generate the caption of dataset
