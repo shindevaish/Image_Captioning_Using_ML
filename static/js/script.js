@@ -1,13 +1,20 @@
 document.getElementById('search-btn').addEventListener('click', async function (event) {
     event.preventDefault();
     const query = document.getElementById('search-input').value;
+    const algorithm = document.getElementById('category-dropdown').value;
+
+    // Check if the user has selected an algorithm
+    if (!algorithm) {
+        alert('Please select an algorithm. It is compulsory.');
+        return;  // Stop the function execution if algorithm is not selected
+    }
 
     const response = await fetch('/search/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: query }),
+        body: JSON.stringify({ query: query, algorithm: algorithm }),
     });
 
     const result = await response.json();
@@ -29,15 +36,15 @@ document.getElementById('search-btn').addEventListener('click', async function (
             container.appendChild(imgElement);
             container.appendChild(captionElement);
             resultDiv.appendChild(container);
-
         });
     } else if (result.detail) {
         resultDiv.innerHTML = `<p>${result.detail}</p>`;
     }
-    
+
     // Keep the query in the input box
     document.getElementById('search-input').value = query;
 });
+
 
 document.getElementById('upload-btn').addEventListener('click', function () {
     document.getElementById('file-input').click();

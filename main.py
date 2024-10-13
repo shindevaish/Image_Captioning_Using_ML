@@ -253,38 +253,39 @@ def search_with_dot_product(query):
 
 @app.post("/search/")
 async def search_endpoint(request: Request):
-    data = await request.json()
-    query = data.get("query")
+    try:
+        data = await request.json()
+        query = data.get("query")
+        algorithm = data.get("algorithm")
 
-    print(f"Received query:   {query}")
-    result = search_with_dot_product(query)
+        if not query:
+            return JSONResponse(content={"detail": "Query is missing"}, status_code=400)
+        
+        if not algorithm:
+            return JSONResponse(content={"detail": "Algorithm is missing"}, status_code=400)
 
-    lst = []
-    for index in result:
-        row = image_caption.iloc[index]
-        lst.append({"file_name": row['image_id'], 'caption': row['caption']})    
+        # Perform search logic
+        if algorithm == "boolean":
+            result = boolean_search(query)
+        elif algorithm == "semantic":
+            result = semantic_search_tfidf(query)
+        elif algorithm == "bert":
+            result = bert_model(query)
+        elif algorithm == "bert_dot_product":
+            result=search_with_dot_product(query)
+        else:
+            return JSONResponse(content={"detail": "Invalid algorithm selected"}, status_code=400)
 
-    return JSONResponse(content={"results": lst})
+        lst = []
+        for index in result:
+            row = image_caption.iloc[index]
+            lst.append({"file_name": row['image_id'], 'caption': row['caption']})    
 
-    # if len(result) > 0:  # Check if there are any results
-    #     result_list = result.tolist() if isinstance(result, np.ndarray) else result
+        return JSONResponse(content={"results": lst})
 
-    #     return JSONResponse(content={"results": result_list})
-    # else:
-    #     return JSONResponse(content={"message": "No matching image found"})
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
-    
-    # if not query:
-    #     return JSONResponse(content={'message' : "No matching image found"})
-    # else:
-    #     match=image_caption[image_caption['caption'].str.contains(fr'\b{query}\b', case=False, na=False)]
-    #     lst=[{"file_name" : row['image_id'], 'caption' : row['caption']} for _, row in match.iterrows()]
-
-    # # folder="static/images"
-    # # files= sorted(os.listdir(folder))[:10]
-    # # lst=[{"file_name":file,"url":f"static/images/{file}"} for file in files]
-
-    # return JSONResponse(content={"images": lst})
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():

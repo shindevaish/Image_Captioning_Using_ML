@@ -14,6 +14,17 @@
             <input type="text" id="search-input" placeholder="Search anything here.....">
             <button type="submit" id="search-btn">Search</button>
         </form>
+
+        <div id="dropdown-container">
+            <select id="category-dropdown">
+                <option value="" disabled selected>Select Algorithm</option>
+                <option value="boolean">Boolean Search</option>
+                <option value="semantic">Semantic Search (Tf-Idf)</option>
+                <option value="bert">BERT model</option>
+                <option value="bert_dot_product">Dot Product Search</option>
+            </select>
+        </div>
+
         <div id="upload">
             <button type="button" id="upload-btn" onClick="triggerFileInput()">Search by image</button>
             <button type="button" id="add-image-btn">Add Image to Database</button>
