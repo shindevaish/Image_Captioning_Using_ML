@@ -54,8 +54,8 @@ def boolean_search(query):
         return tokens
 
     def construct_inverted_index(df):
-        dictionary = {} # inverted index
-    
+        dictionary = {} 
+
         for index, row in df.iterrows():
             tokens = preprocess(row['caption'])
             for token in tokens:
@@ -73,11 +73,11 @@ def boolean_search(query):
         return expression.split()
 
     def infix_to_postfix(tokens):
-        precedence = {"and": 2, "not": 3, "or":1 } # set the precedence of operators for postfix expression
+        precedence = {"and": 2, "not": 3, "or":1, "AND": 2, "NOT": 3, "OR":1 }
         stack = []
         postfix = []
         for token in tokens:
-            if token in precedence: # add operands first and then operators
+            if token in precedence: 
                 while stack and precedence.get(stack[-1], 0) >= precedence[token]:
                     postfix.append(stack.pop())
                 stack.append(token)
@@ -97,19 +97,19 @@ def boolean_search(query):
         stemmer = PorterStemmer()
         stack = []
         for token in postfix:
-            if token == "AND": # take intersection of postings
+            if token == "AND" or token=="and":
                 set2 = stack.pop()
                 set1 = stack.pop()
                 result = set1.intersection(set2)
                 stack.append(result)
-            elif token == "NOT": # finding all documents that are not in the postings list
+            elif token == "NOT" or token=="not": 
                 set1 = stack.pop()
                 stack.append(set(range(len(image_caption))).difference(set1))
-            elif token == "OR": # take union of postings
+            elif token == "OR" or token=="or":
                 set1 = stack.pop()
                 set2 = stack.pop()
-                stack.append(set1.union(set2))  # Convert token to a set
-            else: # retrive the posting of the stemmed token
+                stack.append(set1.union(set2)) 
+            else: 
                 stack.append(inverted_index.get(stemmer.stem(token), set()))
         
         return stack[0]
@@ -117,7 +117,7 @@ def boolean_search(query):
     tokens = tokenize_infix_expression(query)
     postfix_expression = infix_to_postfix(tokens)
     print("Postfix Expression: ", postfix_expression)
-    # Evaluate the postfix expression
+
     result = evaluate_postfix(postfix_expression)
     return result
 
@@ -128,7 +128,7 @@ def semantic_search_tfidf(query):
 
     for summary in image_caption['caption'].to_list():
         tokens = summary.lower().split()
-        # Stemming and stop-word removal
+
         tokens = [stemmer.stem(token) for token in tokens if token not in stop_words]
         corpus.append(" ".join(tokens))
         
@@ -180,7 +180,7 @@ def semantic_search_tfidf(query):
 
     query_tfidf_features = vectorizer.transform([query_processed])
     similarities = cosine_similarity(documents_tfidf_features, query_tfidf_features).flatten()
-    TopK = 30
+    TopK = 15
     top_indices = similarities.argsort()[::-1][:TopK]# Pick TopK document ids having highest cosine similarity
     
     # Display the relevant documents
@@ -196,38 +196,28 @@ tokenizer_bert = AutoTokenizer.from_pretrained('sentence-transformers/bert-base-
 model_bert = AutoModel.from_pretrained('sentence-transformers/bert-base-nli-mean-tokens')
 
 def bert_model(query):
+    query_tokens = tokenizer_bert([query], max_length=128, truncation=True, padding='max_length', return_tensors='pt')
+    query_outputs = model_bert(**query_tokens)
+    
+    query_embeddings = query_outputs.last_hidden_state
+    query_mask = query_tokens['attention_mask'].unsqueeze(-1).expand(query_embeddings.size()).float()
+    query_masked_embeddings = query_embeddings * query_mask
+    query_summed = torch.sum(query_masked_embeddings, 1)
+    query_counted = torch.clamp(query_mask.sum(1), min=1e-9)
+    query_mean_pooled = query_summed / query_counted
 
-    for summary in image_caption['caption'].to_list():
-        tokens = tokenizer_bert([summary,query],
-                            max_length=128,
-                            truncation=True,
-                            padding='max_length',
-                            return_tensors='pt')
-    outputs = model_bert(**tokens)
+    query_embedding = query_mean_pooled.detach().numpy()
 
-    embeddings = outputs.last_hidden_state
-    embeddings[0].shape
-    mask = tokens['attention_mask'].unsqueeze(-1).expand(embeddings.size()).float()
-    mask.shape
-    masked_embeddings = embeddings * mask
+    caption_embeddings =  caption_embeddings = np.load("caption_embeddings.npy")
 
-    summed = torch.sum(masked_embeddings, 1)
-    summed.shape
-    counted = torch.clamp(mask.sum(1), min=1e-9)
-    mean_pooled = summed / counted
+    similarities = cosine_similarity(query_embedding, caption_embeddings).flatten()
 
-    mean_pooled = mean_pooled.detach().numpy()
+    TopK = 15
+    top_indices = similarities.argsort()[::-1][:TopK]
 
-    scores = np.zeros((mean_pooled.shape[0], mean_pooled.shape[0]))
-    for i in range(mean_pooled.shape[0]):
-        scores[i, :] = cosine_similarity(
-            [mean_pooled[i]],
-            mean_pooled
-        )[0]
-    return scores
+    return top_indices
 
 def search_with_dot_product(query):
-    # Embed the query
     tokens = tokenizer_bert(query, max_length=128, truncation=True, padding='max_length', return_tensors='pt')
     print(tokens['input_ids'].shape)
     outputs = model_bert(**tokens)
@@ -245,7 +235,7 @@ def search_with_dot_product(query):
     
     dot_products = np.dot(caption_embeddings, query_embedding.T).flatten()
     
-    TopK = 10
+    TopK = 15
     top_indices = dot_products.argsort()[::-1][:TopK]
     
     return top_indices
@@ -264,7 +254,6 @@ async def search_endpoint(request: Request):
         if not algorithm:
             return JSONResponse(content={"detail": "Algorithm is missing"}, status_code=400)
 
-        # Perform search logic
         if algorithm == "boolean":
             result = boolean_search(query)
         elif algorithm == "semantic":
@@ -289,10 +278,9 @@ async def search_endpoint(request: Request):
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return HTMLResponse(content="", status_code=204)  # Empty response with no content
+    return HTMLResponse(content="", status_code=204) 
 
 
-#Initialisation of blip model 
 
 processor=BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
 model=BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
