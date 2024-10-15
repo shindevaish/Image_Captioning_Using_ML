@@ -102,3 +102,5 @@ uvicorn app:main --reload --port 8001
 ```
 You can choose any port.
 
+NOTE: For BERT Model implementation 
+Firstly run the code in main.ipynb file (which generate a npy file)
