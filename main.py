@@ -206,7 +206,7 @@ def bert_model(query):
     query_counted = torch.clamp(query_mask.sum(1), min=1e-9)
     query_mean_pooled = query_summed / query_counted
 
-    query_embedding = query_mean_pooled.detach().numpy()
+    query_embedding = query_mean_pooled.detach().numpy().reshape(1,-1)
 
     caption_embeddings =  caption_embeddings = np.load("caption_embeddings.npy")
 
@@ -218,26 +218,29 @@ def bert_model(query):
     return top_indices
 
 def search_with_dot_product(query):
-    tokens = tokenizer_bert(query, max_length=128, truncation=True, padding='max_length', return_tensors='pt')
-    print(tokens['input_ids'].shape)
+
+    tokens = tokenizer_bert([query], max_length=128, truncation=True,
+                            padding='max_length', return_tensors='pt')
+
     outputs = model_bert(**tokens)
-    
+
     embeddings = outputs.last_hidden_state
     mask = tokens['attention_mask'].unsqueeze(-1).expand(embeddings.size()).float()
+
     masked_embeddings = embeddings * mask
     summed = torch.sum(masked_embeddings, 1)
     counted = torch.clamp(mask.sum(1), min=1e-9)
+
     query_embedding = summed / counted
-    
-    query_embedding = query_embedding.detach().numpy()
+    query_embedding = query_embedding.detach().numpy().reshape(-1)
 
     caption_embeddings = np.load("caption_embeddings.npy")
-    
-    dot_products = np.dot(caption_embeddings, query_embedding.T).flatten()
-    
+
+    dot_products = np.dot(caption_embeddings, query_embedding)
+
     TopK = 15
     top_indices = dot_products.argsort()[::-1][:TopK]
-    
+
     return top_indices
 
 
