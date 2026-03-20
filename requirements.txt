@@ -13,3 +13,4 @@ safetensors
 nltk
 scikit-learn
 requests
+ipython
