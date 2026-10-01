@@ -100,7 +100,7 @@ cd Image_Captioning_Using_ML
 ```
 
 ```
-uvicorn app:main --reload --port 8001
+uvicorn main:app --reload --port 8001
 ```
 You can choose any port.
 

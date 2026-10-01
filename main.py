@@ -121,7 +121,7 @@ def boolean_search(query):
     result = evaluate_postfix(postfix_expression)
     return result
 
-def semantic_search_tfidf(query):
+def tfidf(query):
     stemmer = PorterStemmer()
     stop_words = set(stopwords.words("english"))
     corpus = []
@@ -259,8 +259,8 @@ async def search_endpoint(request: Request):
 
         if algorithm == "boolean":
             result = boolean_search(query)
-        elif algorithm == "semantic":
-            result = semantic_search_tfidf(query)
+        elif algorithm == "tfidf":
+            result = tfidf(query)
         elif algorithm == "bert":
             result = bert_model(query)
         elif algorithm == "bert_dot_product":
