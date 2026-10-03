@@ -195,7 +195,7 @@ def tfidf(query):
 tokenizer_bert = AutoTokenizer.from_pretrained('sentence-transformers/bert-base-nli-mean-tokens')
 model_bert = AutoModel.from_pretrained('sentence-transformers/bert-base-nli-mean-tokens')
 
-def bert_model(query):
+def bert_model_with_cosine_similarity(query):
     query_tokens = tokenizer_bert([query], max_length=128, truncation=True, padding='max_length', return_tensors='pt')
     query_outputs = model_bert(**query_tokens)
     
@@ -217,7 +217,7 @@ def bert_model(query):
 
     return top_indices
 
-def search_with_dot_product(query):
+def bert_model_with_dot_product(query):
 
     tokens = tokenizer_bert([query], max_length=128, truncation=True,
                             padding='max_length', return_tensors='pt')
@@ -261,10 +261,10 @@ async def search_endpoint(request: Request):
             result = boolean_search(query)
         elif algorithm == "tfidf":
             result = tfidf(query)
-        elif algorithm == "bert":
-            result = bert_model(query)
-        elif algorithm == "bert_dot_product":
-            result=search_with_dot_product(query)
+        elif algorithm == "bert_with_cosine_similarity":
+            result = bert_model_with_cosine_similarity(query)
+        elif algorithm == "bert_with_dot_product":
+            result = bert_model_with_dot_product(query)
         else:
             return JSONResponse(content={"detail": "Invalid algorithm selected"}, status_code=400)
 
