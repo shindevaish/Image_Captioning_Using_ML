@@ -49,11 +49,13 @@ The top 30 results are shown to the user with the corresponding image and its ge
 
 ## Algorithms and Techniques
 
-BLIP Model: This is used for generating captions for each image uploaded to the system. The captions provide semantic descriptions of the images and are stored for future use in the search process.
+Boolean: It builds an inverted index (term to set of caption ids) after lowercasing, removing stopwords and Porter stemming. It parses AND / OR / NOT queries by converting infix to postfix (shunting-yard) and evaluates them with set intersection, union and complement.
 
-Boolean Search: Uses an inverted index created from the captions and performs logical operations like AND, OR, and NOT to retrieve matching images.
+TF-IDF: It uses sklearn's TfidfVectorizer (sublinear TF, 5,000 features) and ranks captions by cosine similarity, returning the top 15.
 
-Jaccard Similarity: This method compares the query with the captions based on the set intersection and union of words, computing a similarity score. The top results with the highest scores are displayed.
+BERT with cosine similarity: It embeds the query and compares it to every caption vector, returning the top 15.
+
+BERT with dot product: This is the same idea but ranks by raw dot product, so I would expect it to favour vectors with larger norms.
 
 ## System Flow
 ### Image Upload:
